@@ -1,0 +1,98 @@
+from tkinter import *
+import tkinter as tk
+from tkinter import messagebox
+
+def gauss_jordan(a, b):
+    n = len(b)
+    aug = [row + [b[i]] for i, row in enumerate(a)]  # Augmented matrix
+
+    for i in range(n):
+        # Pivoting
+        max_row = i
+        for k in range(i + 1, n):
+            if abs(aug[k][i]) > abs(aug[max_row][i]):
+                max_row = k
+
+        # Swap rows
+        aug[i], aug[max_row] = aug[max_row], aug[i]
+
+        # Check for zero pivot
+        if abs(aug[i][i]) < 1e-9:
+            continue
+
+        # Make pivot 1
+        pivot = aug[i][i]
+        aug[i] = [x / pivot for x in aug[i]]
+
+        # Eliminate other rows
+        for k in range(n):
+            if k != i:
+                factor = aug[k][i]
+                aug[k] = [aug[k][j] - factor * aug[i][j] for j in range(n + 1)]
+
+    # Check for no solution or infinite solutions
+    has_free_variable = False
+    for i in range(n):
+        all_zero = all(abs(aug[i][j]) < 1e-9 for j in range(n))
+        if all_zero and abs(aug[i][n]) > 1e-9:
+            return "해가 없음"
+        elif all_zero and abs(aug[i][n]) < 1e-9:
+            has_free_variable = True
+
+    if has_free_variable:
+        # Infinite solutions
+        result = ["무수히 많은 해:"]
+        for i in range(n):
+            all_zero = all(abs(aug[i][j]) < 1e-9 for j in range(n))
+            if all_zero:
+                result.append(f"x{i + 1} = t")
+            else:
+                solution = [f"{aug[i][j]:.2f}t" if j != i and abs(aug[i][j]) > 1e-9 else "" for j in range(n)]
+                constant = f"+ {aug[i][n]:.2f}" if abs(aug[i][n]) > 1e-9 else ""
+                result.append(f"x{i + 1} = {' '.join(filter(None, solution))} {constant}".strip())
+        return '\n'.join(result)
+
+    # Unique solution
+    solutions = [round(aug[i][n]) for i in range(n)]
+    return f"유일한 해: {solutions}"
+
+def calculate():
+    try:
+        matrix = input_matrix.get("1.0", tk.END).strip()
+        vector = input_vector.get().strip()
+
+        a = [[float(num) for num in row.split()] for row in matrix.split('\n') if row.strip()]
+        b = [float(num) for num in vector.split()]
+
+        if len(a) != len(b):
+            messagebox.showerror("오류", "행렬과 벡터의 길이가 일치하지 않습니다.")
+            return
+
+        result = gauss_jordan(a, b)
+        output_result.delete("1.0", tk.END)
+        output_result.insert(tk.END, result)
+
+    except Exception as e:
+        messagebox.showerror("오류", f"입력 오류: {str(e)}")
+
+# Tkinter 윈도우 설정
+root = tk.Tk()
+root.title("Gauss-Jordan 소거법")
+
+# 입력 필드
+tk.Label(root, text="계수 행렬 (행별로 입력, 공백으로 구분):").grid(row=0, column=0, padx=10, pady=5)
+input_matrix = tk.Text(root, height=8, width=40)
+input_matrix.grid(row=1, column=0, padx=10, pady=5)
+
+tk.Label(root, text="상수 벡터 (공백으로 구분):").grid(row=2, column=0, padx=10, pady=5)
+input_vector = tk.Entry(root, width=40)
+input_vector.grid(row=3, column=0, padx=10, pady=5)
+
+# 결과 출력 필드
+tk.Button(root, text="계산", command=calculate).grid(row=4, column=0, padx=10, pady=10)
+output_result = tk.Text(root, height=10, width=40)
+output_result.grid(row=5, column=0, padx=10, pady=5)
+
+
+# Tkinter 루프 시작
+root.mainloop()
